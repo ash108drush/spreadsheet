@@ -1,9 +1,21 @@
-#include <iostream>
+#include "FormulaAST.h"
+#include "common.h"
+#include "test_runner_p.h"
 
-using namespace std;
+namespace {
+double ExecuteASTFormula(const std::string& expression) {
+    return ParseFormulaAST(expression).Execute();
+}
+}  // namespace
 
-int main()
-{
-    cout << "Hello World!" << endl;
-    return 0;
+int main() {
+    ASSERT_EQUAL(ExecuteASTFormula("1"), 1.0);
+    ASSERT_EQUAL(ExecuteASTFormula("1+2*3-4/5"), 6.2);
+    try {
+        ExecuteASTFormula("1/0");
+    } catch (const FormulaError& fe) {
+        std::cout << fe.what() << std::endl;
+    }
+
+    std::cout << "Tests Passed" << std::endl;
 }

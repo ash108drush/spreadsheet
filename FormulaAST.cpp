@@ -9,7 +9,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
-
+#include <iostream>
 namespace ASTImpl {
 
 enum ExprPrecedence {
@@ -145,25 +145,36 @@ public:
 // Реализуйте метод Evaluate() для бинарных операций.
 // При делении на 0 выбрасывайте ошибку вычисления FormulaError
     double Evaluate() const override {
-        if(type_ == Type::Divide && !std::isfinite(rhs_->Evaluate())){
-            throw FormulaError("Divide on zero");
-        }
+        double left_val = lhs_->Evaluate();
+        double right_val = rhs_->Evaluate();
+        double result = 1.0;
         switch (type_) {
         case Add:
-            return lhs_->Evaluate() + rhs_->Evaluate();
+            result = left_val + right_val;
+            break;
         case Subtract:
-            return lhs_->Evaluate() - rhs_->Evaluate();
+            result = left_val - right_val;
+            break;
         case Multiply:
-            return lhs_->Evaluate() * rhs_->Evaluate();
+            result = left_val * right_val;
+            break;
         case Divide:
-            return lhs_->Evaluate() / rhs_->Evaluate();
+            if(!std::isfinite( right_val )){
+                throw FormulaError("ARITHM");
+            }
+            result = left_val / right_val;
+            break;
         default:
             // have to do this because VC++ has a buggy warning
             assert(false);
             return static_cast<ExprPrecedence>(INT_MAX);
+            break;
         }
-        assert(false);
-        return static_cast<ExprPrecedence>(INT_MAX);
+      //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
+        if (!std::isfinite(result)) {
+            throw FormulaError("ARITHM");
+        }
+        return result;
     }
 
 private:
@@ -202,11 +213,12 @@ public:
 
 // Реализуйте метод Evaluate() для унарных операций.
     double Evaluate() const override {
+        double oper = operand_->Evaluate();
         switch (type_) {
         case '+':
-            return operand_->Evaluate();
+            return oper;
         case '-':
-            return operand_->Evaluate() * (-1);
+            return oper * (-1);
         default:
             // have to do this because VC++ has a buggy warning
             assert(false);

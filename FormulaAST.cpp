@@ -3,7 +3,7 @@
 #include "FormulaBaseListener.h"
 #include "FormulaLexer.h"
 #include "FormulaParser.h"
-
+#include "common.h"
 #include <cassert>
 #include <cmath>
 #include <memory>
@@ -145,7 +145,25 @@ public:
 // Реализуйте метод Evaluate() для бинарных операций.
 // При делении на 0 выбрасывайте ошибку вычисления FormulaError
     double Evaluate() const override {
-        return 6.2;
+        if(type_ == Type::Divide && rhs_ == 0){
+            throw FormulaError("Divide on zero");
+        }
+        switch (type_) {
+        case Add:
+            return lhs_->Evaluate() + rhs_->Evaluate();
+        case Subtract:
+            return lhs_->Evaluate() - rhs_->Evaluate();
+        case Multiply:
+            return lhs_->Evaluate() * rhs_->Evaluate();
+        case Divide:
+            return lhs_->Evaluate() / rhs_->Evaluate();
+        default:
+            // have to do this because VC++ has a buggy warning
+            assert(false);
+            return static_cast<ExprPrecedence>(INT_MAX);
+        }
+        assert(false);
+        return static_cast<ExprPrecedence>(INT_MAX);
     }
 
 private:
@@ -184,7 +202,18 @@ public:
 
 // Реализуйте метод Evaluate() для унарных операций.
     double Evaluate() const override {
-        return 6.2;
+        switch (type_) {
+        case '+':
+            return operand_->Evaluate();
+        case '-':
+            return operand_->Evaluate() * (-1);
+        default:
+            // have to do this because VC++ has a buggy warning
+            assert(false);
+            return static_cast<ExprPrecedence>(INT_MAX);
+        }
+        assert(false);
+        return static_cast<ExprPrecedence>(INT_MAX);
     }
 
 private:

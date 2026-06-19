@@ -145,7 +145,7 @@ public:
 // Реализуйте метод Evaluate() для бинарных операций.
 // При делении на 0 выбрасывайте ошибку вычисления FormulaError
     double Evaluate() const override {
-        if(type_ == Type::Divide && rhs_ == 0){
+        if(type_ == Type::Divide && !std::isfinite(rhs_->Evaluate())){
             throw FormulaError("Divide on zero");
         }
         switch (type_) {

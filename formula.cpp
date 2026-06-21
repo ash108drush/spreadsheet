@@ -17,9 +17,19 @@ namespace {
 class Formula : public FormulaInterface {
 public:
 // Реализуйте следующие методы:
-    explicit Formula(std::string expression) 
-    Value Evaluate() const override 
-    std::string GetExpression() const override 
+    explicit Formula(std::string expression):ast_(ParseFormulaAST(expression)){
+
+    }
+    Value Evaluate() const override{
+        return ast_.Execute();
+
+    }
+    std::string GetExpression() const override{
+        std::string out_str;
+        std::ostringstream out(out_str);
+        ast_.PrintFormula(out);
+        return out.str();
+    }
 
 private:
     FormulaAST ast_;

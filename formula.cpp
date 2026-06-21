@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cctype>
 #include <sstream>
+#include <variant>
 
 using namespace std::literals;
 
@@ -21,7 +22,11 @@ public:
 
     }
     Value Evaluate() const override{
-        return ast_.Execute();
+        try {
+            return ast_.Execute();
+        } catch (const FormulaError& fe) {
+            return fe;  // Если выбрасывается FormulaError, помещаем её в variant
+        }
 
     }
     std::string GetExpression() const override{

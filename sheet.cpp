@@ -12,14 +12,20 @@ using namespace std::literals;
 
 Sheet::~Sheet() {}
 
-void Sheet::SetCell(Position pos, std::string text) {}
+void Sheet::SetCell(Position pos, std::string text) {
+    if(pos.IsValid()){
+
+    }
+}
 
 const CellInterface* Sheet::GetCell(Position pos) const {}
 CellInterface* Sheet::GetCell(Position pos) {}
 
 void Sheet::ClearCell(Position pos) {}
 
-Size Sheet::GetPrintableSize() const {}
+Size Sheet::GetPrintableSize() const {
+    return table_size_;
+}
 
 void Sheet::PrintValues(std::ostream& output) const {}
 void Sheet::PrintTexts(std::ostream& output) const {}

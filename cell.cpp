@@ -21,7 +21,9 @@ void Cell::Set(std::string text) {
 
 }
 
-void Cell::Clear() {}
+void Cell::Clear() {
+    impl_ = std::make_unique<EmptyImpl>();
+}
 
 Cell::Value Cell::GetValue() const {
     return impl_->GetValue();

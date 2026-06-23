@@ -46,7 +46,10 @@ CellInterface* Sheet::GetCell(Position pos) {
 void Sheet::ClearCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            cells_[pos.col][pos.row]->Clear();
+            cells_[pos.col][pos.row] = nullptr;
+        }
+        if(pos.col == table_size_.cols -1 && pos.row == table_size_.rows -1){
+            RefreshTableSize();
         }
 
     }
@@ -96,6 +99,24 @@ void Sheet::ResizeTable(Size size){
     for(int x = 0; x < size.cols; ++x ){
         cells_[x].resize(size.rows);
     }
+}
+
+void Sheet::RefreshTableSize(){
+    int max_col = 0;
+    int max_row = 0;
+    for(int row = 0; row < table_size_.rows; ++row){
+        for(int col = 0; col < table_size_.cols; ++col ){
+            if (cells_[col][row]) {
+                if(col > max_col)
+                    max_col = col;
+                if(row > max_row)
+                    max_row = row;
+            }
+
+        }
+    }
+    table_size_.cols = max_col + 1;
+    table_size_.rows = max_row + 1;
 }
 
 std::unique_ptr<SheetInterface> CreateSheet() {

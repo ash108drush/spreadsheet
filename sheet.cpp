@@ -25,6 +25,8 @@ void Sheet::SetCell(Position pos, std::string text) {
             cells_[row][col] = std::make_unique<Cell>();
         }
         cells_[row][col]->Set(text);
+    }else{
+        throw InvalidPositionException("Invalid pos");
     }
 }
 
@@ -33,6 +35,8 @@ const CellInterface* Sheet::GetCell(Position pos) const {
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
             return cells_[pos.col][pos.row].get();
         }
+    } else{
+        throw InvalidPositionException("Invalid pos");
     }
     return nullptr;
 }

@@ -91,20 +91,20 @@ void TestPrint() {
 
     std::ostringstream texts;
     sheet->PrintTexts(texts);
-    std::cout << "--- Output Start ---" << std::endl;
-    std::cout << texts.str() << std::endl;
-    std::cout << "--- Output End ---" << std::endl;
-    std::cout << "=1/0\t\nmeow\t=1+2\n" << std::endl;
+ //   std::cout << "--- Output Start ---" << std::endl;
+ //   std::cout << texts.str() << std::endl;
+//    std::cout << "--- Output End ---" << std::endl;
+ //   std::cout << "=1/0\t\nmeow\t=1+2\n" << std::endl;
 
-//      ASSERT_EQUAL(texts.str(), );
-/*
+    ASSERT_EQUAL(texts.str(), "=1/0\t\nmeow\t=1+2\n");
+
     std::ostringstream values;
     sheet->PrintValues(values);
     ASSERT_EQUAL(values.str(), "#ARITHM!\t\nmeow\t3\n");
 
     sheet->ClearCell("B2"_pos);
     ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{2, 1}));
-*/
+
 }
 
 }  // namespace

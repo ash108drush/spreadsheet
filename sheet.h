@@ -24,6 +24,7 @@ public:
 	// Можете дополнить ваш класс нужными полями и методами
 
 private:
-    std::vector<std::vector<std::unique_ptr<CellInterface>>> cells_;
-    Size max_size_ = {0, 0};
+    void ResizeTable(Size size);
+    std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
+    Size table_size_ = {0, 0};
 };

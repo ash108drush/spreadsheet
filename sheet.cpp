@@ -14,15 +14,17 @@ Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
     if(pos.IsValid()){
+
         if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
             ResizeTable({pos.row +1 , pos.col +1 });
+
         }
-        int x = pos.col;
-        int y = pos.row;
-        if(cells_[x][y] == nullptr){
-            cells_[x][y] = std::make_unique<Cell>();
+        int col = pos.col;
+        int row = pos.row;
+        if(!cells_[row][col]){
+            cells_[row][col] = std::make_unique<Cell>();
         }
-        cells_[x][y]->Set(text);
+        cells_[row][col]->Set(text);
     }
 }
 
@@ -37,7 +39,7 @@ const CellInterface* Sheet::GetCell(Position pos) const {
 CellInterface* Sheet::GetCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            return cells_[pos.col][pos.row].get();
+            return cells_[pos.row][pos.col].get();
         }
     }
     return nullptr;
@@ -46,7 +48,7 @@ CellInterface* Sheet::GetCell(Position pos) {
 void Sheet::ClearCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            cells_[pos.col][pos.row] = nullptr;
+            cells_[pos.row][pos.col] = nullptr;
         }
         if(pos.col == table_size_.cols -1 && pos.row == table_size_.rows -1){
             RefreshTableSize();
@@ -62,8 +64,8 @@ Size Sheet::GetPrintableSize() const {
 void Sheet::PrintValues(std::ostream& output) const {
     for(int row = 0; row < table_size_.rows; ++row){
         for(int col = 0; col < table_size_.cols; ++col ){
-            if (cells_[col][row]) {
-                const auto& value = cells_[col][row]->GetValue();
+            if (cells_[row][col]) {
+                const auto& value = cells_[row][col]->GetValue();
                 std::visit([&](const auto& v) {
                     output << v ;
                     }, value);
@@ -79,8 +81,8 @@ void Sheet::PrintValues(std::ostream& output) const {
 void Sheet::PrintTexts(std::ostream& output) const {
     for(int row = 0; row < table_size_.rows; ++row){
         for(int col = 0; col < table_size_.cols; ++col ){
-            if (cells_[col][row]) {
-                const auto& value = cells_[col][row]->GetText();
+            if (cells_[row][col]) {
+                const auto& value = cells_[row][col]->GetText();
                 output << value;
             }else{
                 output << "";
@@ -93,12 +95,14 @@ void Sheet::PrintTexts(std::ostream& output) const {
 }
 
 void Sheet::ResizeTable(Size size){
-    table_size_.rows = size.rows;
-    table_size_.cols = size.cols;
-    cells_.resize(size.cols);
-    for(int x = 0; x < size.cols; ++x ){
-        cells_[x].resize(size.rows);
+    table_size_.rows = std::max(size.rows, table_size_.rows );
+    table_size_.cols = std::max(size.cols, table_size_.cols );
+   // std::cout << "col: " << table_size_.cols  << " row: " << table_size_.rows << std::endl;
+    cells_.resize(table_size_.rows);
+    for (auto& row : cells_) {
+        row.resize(table_size_.cols);
     }
+
 }
 
 void Sheet::RefreshTableSize(){
@@ -106,7 +110,7 @@ void Sheet::RefreshTableSize(){
     int max_row = 0;
     for(int row = 0; row < table_size_.rows; ++row){
         for(int col = 0; col < table_size_.cols; ++col ){
-            if (cells_[col][row]) {
+            if (cells_[row][col]) {
                 if(col > max_col)
                     max_col = col;
                 if(row > max_row)

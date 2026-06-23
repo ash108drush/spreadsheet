@@ -25,6 +25,7 @@ public:
 
 private:
     void ResizeTable(Size size);
+    void RefreshTableSize();
     std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
     Size table_size_ = {0, 0};
 };

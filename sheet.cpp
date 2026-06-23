@@ -45,6 +45,8 @@ CellInterface* Sheet::GetCell(Position pos) {
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
             return cells_[pos.row][pos.col].get();
         }
+    }else{
+        throw InvalidPositionException("Invalid pos");
     }
     return nullptr;
 }
@@ -58,6 +60,8 @@ void Sheet::ClearCell(Position pos) {
             RefreshTableSize();
         }
 
+    }else{
+        throw InvalidPositionException("Invalid pos");
     }
 }
 

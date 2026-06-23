@@ -48,6 +48,7 @@ void Sheet::ClearCell(Position pos) {
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
             cells_[pos.col][pos.row]->Clear();
         }
+
     }
 }
 
@@ -61,14 +62,15 @@ void Sheet::PrintValues(std::ostream& output) const {
             if (cells_[col][row]) {
                 const auto& value = cells_[col][row]->GetValue();
                 std::visit([&](const auto& v) {
-                    output << v << '\t';
+                    output << v ;
                     }, value);
             }else{
-                output << "" << '\t';
+                output << "";
             }
+            (col == table_size_.cols -1) ? output << '\n' : output << '\t';
 
         }
-        output << '\n';
+
     }
 }
 void Sheet::PrintTexts(std::ostream& output) const {

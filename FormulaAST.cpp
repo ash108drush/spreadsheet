@@ -65,7 +65,7 @@ constexpr PrecedenceRule PRECEDENCE_RULES[EP_END][EP_END] = {
     /* EP_DIV */ {PR_BOTH, PR_BOTH, PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE},
     /* EP_UNARY */ {PR_BOTH, PR_BOTH, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
     /* EP_ATOM */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-};
+    };
 
 class Expr {
 public:
@@ -127,23 +127,23 @@ public:
 
     ExprPrecedence GetPrecedence() const override {
         switch (type_) {
-            case Add:
-                return EP_ADD;
-            case Subtract:
-                return EP_SUB;
-            case Multiply:
-                return EP_MUL;
-            case Divide:
-                return EP_DIV;
-            default:
-                // have to do this because VC++ has a buggy warning
-                assert(false);
-                return static_cast<ExprPrecedence>(INT_MAX);
+        case Add:
+            return EP_ADD;
+        case Subtract:
+            return EP_SUB;
+        case Multiply:
+            return EP_MUL;
+        case Divide:
+            return EP_DIV;
+        default:
+            // have to do this because VC++ has a buggy warning
+            assert(false);
+            return static_cast<ExprPrecedence>(INT_MAX);
         }
     }
 
-// Реализуйте метод Evaluate() для бинарных операций.
-// При делении на 0 выбрасывайте ошибку вычисления FormulaError
+    // Реализуйте метод Evaluate() для бинарных операций.
+    // При делении на 0 выбрасывайте ошибку вычисления FormulaError
     double Evaluate() const override {
         double left_val = lhs_->Evaluate();
         double right_val = rhs_->Evaluate();
@@ -160,7 +160,7 @@ public:
             break;
         case Divide:
             if(!std::isfinite( right_val )){
-                throw FormulaError("ARITHM");
+                throw new FormulaError(FormulaError::Category::Arithmetic);
             }
             result = left_val / right_val;
             break;
@@ -170,9 +170,9 @@ public:
             return static_cast<ExprPrecedence>(INT_MAX);
             break;
         }
-      //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
+        //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
         if (!std::isfinite(result)) {
-            throw FormulaError("ARITHM");
+            throw new FormulaError(FormulaError::Category::Arithmetic);
         }
         return result;
     }
@@ -211,7 +211,7 @@ public:
         return EP_UNARY;
     }
 
-// Реализуйте метод Evaluate() для унарных операций.
+    // Реализуйте метод Evaluate() для унарных операций.
     double Evaluate() const override {
         double oper = operand_->Evaluate();
         switch (type_) {
@@ -251,7 +251,7 @@ public:
         return EP_ATOM;
     }
 
-// Для чисел метод возвращает значение числа.
+    // Для чисел метод возвращает значение числа.
     double Evaluate() const override {
         return value_;
     }

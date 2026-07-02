@@ -12,13 +12,15 @@ Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
     if(pos.IsValid()){
+        if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
+            table_size_.rows = std::max(pos.row + 1, table_size_.rows);
+            table_size_.cols = std::max(pos.col + 1, table_size_.cols);
+        }
         if(cells_.find(pos) == cells_.end()){
             cells_[pos] = std::make_unique<Cell>();
-            std::cout << "make cell at pos" << std::endl;
         }
-        std::cout << "set text" << text << std::endl;
         cells_[pos]->Set(text);
-        std::cout << "return value" << cells_[pos]->GetText() << std::endl;
+
     } else {
         throw InvalidPositionException("Invalid pos");
     }
@@ -27,7 +29,8 @@ void Sheet::SetCell(Position pos, std::string text) {
 const CellInterface* Sheet::GetCell(Position pos) const {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            return cells_[pos].get();
+            if (cells_.find(pos) != cells_.end())
+                return cells_.at(pos).get();
         }
     } else {
         throw InvalidPositionException("Invalid pos");
@@ -38,7 +41,8 @@ const CellInterface* Sheet::GetCell(Position pos) const {
 CellInterface* Sheet::GetCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            return cells_[pos].get();
+            if (cells_.find(pos) != cells_.end())
+                return cells_.at(pos).get();
         }
     } else {
         throw InvalidPositionException("Invalid pos");
@@ -49,7 +53,8 @@ CellInterface* Sheet::GetCell(Position pos) {
 void Sheet::ClearCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            cells_[pos] = nullptr;
+            auto it = cells_.find(pos);
+            cells_.erase(it);
             RefreshTableSize();  // ВСЕГДА обновляем размер, не только для последней ячейки
         }
     } else {
@@ -102,26 +107,22 @@ void Sheet::RefreshTableSize(){
     // ИСПРАВЛЕНО: начинаем с -1, чтобы отличать пустую таблицу
     int max_col = -1;
     int max_row = -1;
-
-    for(int row = 0; row < table_size_.rows; ++row){
-        for(int col = 0; col < table_size_.cols; ++col){
-            Position pos = {row,col};
-            if (cells_.find(pos) != cells_.end()) {
-                max_col = std::max(max_col, col);
-                max_row = std::max(max_row, row);
-            }
+    for(const auto &[pos, cell] :cells_){
+        if(pos.row > max_row){
+            max_row = pos.row;
+        }
+        if(pos.col > max_col){
+            max_col = pos.col;
         }
     }
-
-    // ИСПРАВЛЕНО: если есть ячейки, размер = последний индекс + 1
     if (max_col >= 0 && max_row >= 0) {
         table_size_.cols = max_col + 1;
         table_size_.rows = max_row + 1;
     } else {
-        // ИСПРАВЛЕНО: если ячеек нет, размер = 0x0
         table_size_.cols = 0;
         table_size_.rows = 0;
     }
+
 }
 
 std::unique_ptr<SheetInterface> CreateSheet() {

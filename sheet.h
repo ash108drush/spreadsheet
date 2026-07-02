@@ -2,7 +2,7 @@
 
 #include "cell.h"
 #include "common.h"
-
+#include <unordered_map>
 #include <functional>
 
 class Sheet : public SheetInterface {
@@ -26,6 +26,13 @@ public:
 private:
     void ResizeTable(Size size);
     void RefreshTableSize();
-    std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
+    //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
+    struct PositionHasher {
+        size_t operator()(const Position& p) const {
+            // Простой пример: комбинируем хэши полей x и y
+            return std::hash<int>()(p.row) ^ (std::hash<int>()(p.col) << 1);
+        }
+    };
+    std::unordered_map<Position,std::unique_ptr<Cell>,PositionHasher> cells_;
     Size table_size_ = {0, 0};
 };

@@ -160,7 +160,7 @@ public:
             break;
         case Divide:
             if(!std::isfinite( right_val )){
-                throw new FormulaError(FormulaError::Category::Arithmetic);
+                throw FormulaError("ARITHM");
             }
             result = left_val / right_val;
             break;
@@ -172,7 +172,7 @@ public:
         }
         //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
         if (!std::isfinite(result)) {
-            throw new FormulaError(FormulaError::Category::Arithmetic);
+            throw FormulaError("ARITHM");
         }
         return result;
     }

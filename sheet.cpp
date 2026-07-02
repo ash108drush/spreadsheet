@@ -12,14 +12,13 @@ Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
     if(pos.IsValid()){
-        if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
-            ResizeTable({pos.row + 1, pos.col + 1});
-        }
-
-        if(!cells_[pos]){
+        if(cells_.find(pos) == cells_.end()){
             cells_[pos] = std::make_unique<Cell>();
+            std::cout << "make cell at pos" << std::endl;
         }
+        std::cout << "set text" << text << std::endl;
         cells_[pos]->Set(text);
+        std::cout << "return value" << cells_[pos]->GetText() << std::endl;
     } else {
         throw InvalidPositionException("Invalid pos");
     }
@@ -28,7 +27,7 @@ void Sheet::SetCell(Position pos, std::string text) {
 const CellInterface* Sheet::GetCell(Position pos) const {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            return cells_.at(pos).get();
+            return cells_[pos].get();
         }
     } else {
         throw InvalidPositionException("Invalid pos");
@@ -39,7 +38,7 @@ const CellInterface* Sheet::GetCell(Position pos) const {
 CellInterface* Sheet::GetCell(Position pos) {
     if(pos.IsValid()){
         if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            return cells_.at(pos).get();
+            return cells_[pos].get();
         }
     } else {
         throw InvalidPositionException("Invalid pos");
@@ -97,14 +96,7 @@ void Sheet::PrintTexts(std::ostream& output) const {
     }
 }
 
-void Sheet::ResizeTable(Size size){
-   // table_size_.rows = std::max(size.rows, table_size_.rows);
-    //table_size_.cols = std::max(size.cols, table_size_.cols);
-    //cells_.resize(table_size_.rows);
-    //for (auto& row : cells_) {
-   //     row.resize(table_size_.cols);
-   // }
-}
+
 
 void Sheet::RefreshTableSize(){
     // ИСПРАВЛЕНО: начинаем с -1, чтобы отличать пустую таблицу

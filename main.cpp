@@ -52,6 +52,7 @@ void TestSetCellPlainText() {
     auto checkCell = [&](Position pos, std::string text) {
         sheet->SetCell(pos, text);
         CellInterface* cell = sheet->GetCell(pos);
+        //std::cout << cell->GetText() << std::endl;
         ASSERT(cell != nullptr);
         ASSERT_EQUAL(cell->GetText(), text);
         ASSERT_EQUAL(std::get<std::string>(cell->GetValue()), text);

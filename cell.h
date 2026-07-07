@@ -2,20 +2,27 @@
 
 #include "common.h"
 #include "formula.h"
+#include <functional>
+#include <unordered_set>
+
+class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell();
+    Cell(Sheet& sheet):sheet_(sheet){};
     ~Cell();
 
-    void Set(std::string text) override;
+    void Set(std::string text);
     void Clear();
 
     Value GetValue() const override;
     std::string GetText() const override;
+    std::vector<Position> GetReferencedCells() const override;
+
+    bool IsReferenced() const;
 
 private:
-
+    Sheet &sheet_;
     class Impl {
     public:
         virtual ~Impl() = default;
@@ -54,11 +61,12 @@ private:
     };
     class FormulaImpl : public Impl {
     public:
-        FormulaImpl(std::string expression):formula_(ParseFormula(expression)){
+        FormulaImpl(std::string expression, const SheetInterface& sheet):formula_(ParseFormula(expression)),sheet_(sheet){
         }
 
         CellInterface::Value GetValue() const override{
-            FormulaInterface::Value f_value = formula_->Evaluate();
+
+            FormulaInterface::Value f_value = formula_->Evaluate(sheet_);
             if (std::holds_alternative<double>(f_value)) {
                 return std::get<double>(f_value);
             }
@@ -75,7 +83,9 @@ private:
 
     private:
         std::unique_ptr<FormulaInterface> formula_;
+        const SheetInterface& sheet_;
     };
+
     std::unique_ptr<Impl> impl_;
 
 };

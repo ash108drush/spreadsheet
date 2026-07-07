@@ -10,9 +10,9 @@
 
 using namespace std::literals;
 
-std::ostream& operator<<(std::ostream& output, const FormulaError& fe) {
-    return output << "#ARITHM!";
-}
+//std::ostream& operator<<(std::ostream& output, const FormulaError& fe) {
+//    return output << "#ARITHM!";
+//}
 
 namespace {
 class Formula : public FormulaInterface {
@@ -21,9 +21,9 @@ public:
     explicit Formula(std::string expression):ast_(ParseFormulaAST(expression)){
 
     }
-    Value Evaluate() const override{
+    Value Evaluate(const SheetInterface& sheet) const override{
         try {
-            return ast_.Execute();
+            return ast_.Execute(sheet);
         } catch (const FormulaError& fe) {
             return fe;  // Если выбрасывается FormulaError, помещаем её в variant
         }
@@ -34,6 +34,9 @@ public:
         std::ostringstream out(out_str);
         ast_.PrintFormula(out);
         return out.str();
+    }
+    std::vector<Position> GetReferencedCells() const override{
+        return {};
     }
 
 private:

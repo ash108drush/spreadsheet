@@ -3,13 +3,13 @@
 #include "FormulaBaseListener.h"
 #include "FormulaLexer.h"
 #include "FormulaParser.h"
-#include "common.h"
+
 #include <cassert>
 #include <cmath>
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <iostream>
+
 namespace ASTImpl {
 
 enum ExprPrecedence {
@@ -72,7 +72,7 @@ public:
     virtual ~Expr() = default;
     virtual void Print(std::ostream& out) const = 0;
     virtual void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const = 0;
-    virtual double Evaluate() const = 0;
+    virtual double Evaluate(const SheetInterface &sheet) const = 0;
 
     // higher is tighter
     virtual ExprPrecedence GetPrecedence() const = 0;
@@ -142,11 +142,9 @@ public:
         }
     }
 
-    // Реализуйте метод Evaluate() для бинарных операций.
-    // При делении на 0 выбрасывайте ошибку вычисления FormulaError
-    double Evaluate() const override {
-        double left_val = lhs_->Evaluate();
-        double right_val = rhs_->Evaluate();
+    double Evaluate(const SheetInterface &sheet) const override {
+        double left_val = lhs_->Evaluate(sheet);
+        double right_val = rhs_->Evaluate(sheet);
         double result = 1.0;
         switch (type_) {
         case Add:
@@ -160,7 +158,7 @@ public:
             break;
         case Divide:
             if(!std::isfinite( right_val )){
-                throw FormulaError("ARITHM");
+                throw FormulaError::Category::Arithmetic;
             }
             result = left_val / right_val;
             break;
@@ -172,7 +170,7 @@ public:
         }
         //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
         if (!std::isfinite(result)) {
-            throw FormulaError("ARITHM");
+            throw FormulaError::Category::Arithmetic;
         }
         return result;
     }
@@ -211,9 +209,8 @@ public:
         return EP_UNARY;
     }
 
-    // Реализуйте метод Evaluate() для унарных операций.
-    double Evaluate() const override {
-        double oper = operand_->Evaluate();
+    double Evaluate(const SheetInterface &sheet) const override {
+        double oper = operand_->Evaluate(sheet);
         switch (type_) {
         case '+':
             return oper;
@@ -231,6 +228,36 @@ public:
 private:
     Type type_;
     std::unique_ptr<Expr> operand_;
+};
+
+class CellExpr final : public Expr {
+public:
+    explicit CellExpr(const Position* cell)
+        : cell_(cell) {
+    }
+
+    void Print(std::ostream& out) const override {
+        if (!cell_->IsValid()) {
+            throw FormulaError::Category::Ref;
+        } else {
+            out << cell_->ToString();
+        }
+    }
+
+    void DoPrintFormula(std::ostream& out, ExprPrecedence /* precedence */) const override {
+        Print(out);
+    }
+
+    ExprPrecedence GetPrecedence() const override {
+        return EP_ATOM;
+    }
+
+    double Evaluate(const SheetInterface &sheet) const override {
+         return 0.0;
+    }
+
+private:
+    const Position* cell_;
 };
 
 class NumberExpr final : public Expr {
@@ -251,8 +278,7 @@ public:
         return EP_ATOM;
     }
 
-    // Для чисел метод возвращает значение числа.
-    double Evaluate() const override {
+    double Evaluate(const SheetInterface &sheet) const override {
         return value_;
     }
 
@@ -268,6 +294,10 @@ public:
         args_.clear();
 
         return root;
+    }
+
+    std::forward_list<Position> MoveCells() {
+        return std::move(cells_);
     }
 
 public:
@@ -301,6 +331,18 @@ public:
         args_.push_back(std::move(node));
     }
 
+    void exitCell(FormulaParser::CellContext* ctx) override {
+        auto value_str = ctx->CELL()->getSymbol()->getText();
+        auto value = Position::FromString(value_str);
+        if (!value.IsValid()) {
+            throw FormulaException("Invalid position: " + value_str);
+        }
+
+        cells_.push_front(value);
+        auto node = std::make_unique<CellExpr>(&cells_.front());
+        args_.push_back(std::move(node));
+    }
+
     void exitBinaryOp(FormulaParser::BinaryOpContext* ctx) override {
         assert(args_.size() >= 2);
 
@@ -331,6 +373,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<Expr>> args_;
+    std::forward_list<Position> cells_;
 };
 
 class BailErrorListener : public antlr4::BaseErrorListener {
@@ -367,15 +410,17 @@ FormulaAST ParseFormulaAST(std::istream& in) {
     ASTImpl::ParseASTListener listener;
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
-    return FormulaAST(listener.MoveRoot());
+    return FormulaAST(listener.MoveRoot(), listener.MoveCells());
 }
 
 FormulaAST ParseFormulaAST(const std::string& in_str) {
     std::istringstream in(in_str);
-    try {
-        return ParseFormulaAST(in);
-    } catch (const std::exception& exc) {
-        std::throw_with_nested(FormulaException(exc.what()));
+    return ParseFormulaAST(in);
+}
+
+void FormulaAST::PrintCells(std::ostream& out) const {
+    for (auto cell : cells_) {
+        out << cell.ToString() << ' ';
     }
 }
 
@@ -387,12 +432,14 @@ void FormulaAST::PrintFormula(std::ostream& out) const {
     root_expr_->PrintFormula(out, ASTImpl::EP_ATOM);
 }
 
-double FormulaAST::Execute() const {
-    return root_expr_->Evaluate();
+double FormulaAST::Execute(const SheetInterface &sheet) const {
+    return root_expr_->Evaluate(sheet);
 }
 
-FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr)
-    : root_expr_(std::move(root_expr)) {
+FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)
+    : root_expr_(std::move(root_expr))
+    , cells_(std::move(cells)) {
+    cells_.sort();  // to avoid sorting in GetReferencedCells
 }
 
 FormulaAST::~FormulaAST() = default;

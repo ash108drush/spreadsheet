@@ -17,7 +17,7 @@ void Sheet::SetCell(Position pos, std::string text) {
             table_size_.cols = std::max(pos.col + 1, table_size_.cols);
         }
         if(cells_.find(pos) == cells_.end()){
-            cells_[pos] = std::make_unique<Cell>();
+            cells_[pos] = std::make_unique<Cell>(*this);
         }
         cells_[pos]->Set(text);
 

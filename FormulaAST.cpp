@@ -234,15 +234,15 @@ private:
 
 class CellExpr final : public Expr {
 public:
-    explicit CellExpr(const Position* cell)
+    explicit CellExpr(const Position cell)
         : cell_pos_(cell) {
     }
 
     void Print(std::ostream& out) const override {
-        if (!cell_pos_->IsValid()) {
+        if (!cell_pos_.IsValid()) {
             throw FormulaError::Category::Ref;
         } else {
-            out << cell_pos_->ToString();
+            out << cell_pos_.ToString();
         }
     }
 
@@ -255,11 +255,11 @@ public:
     }
 
     double Evaluate(const SheetInterface &sheet) const override {
-        if (!cell_pos_->IsValid()) {
+        if (!cell_pos_.IsValid()) {
             throw FormulaError::Category::Ref;
         }
-        std::cout << cell_pos_->ToString() << std::endl;
-       CellInterface::Value value = sheet.GetCell(*cell_pos_)->GetValue();
+        std::cout << cell_pos_.ToString() << std::endl;
+       CellInterface::Value value = sheet.GetCell(cell_pos_)->GetValue();
 
         if (double *dVal = std::get_if<double>(&value)) {
             return *dVal;
@@ -287,7 +287,7 @@ public:
     }
 
 private:
-    const Position* cell_pos_;
+    const Position cell_pos_;
 };
 
 class NumberExpr final : public Expr {

@@ -9,6 +9,8 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <iostream>
+#include <variant>
 
 namespace ASTImpl {
 
@@ -233,14 +235,14 @@ private:
 class CellExpr final : public Expr {
 public:
     explicit CellExpr(const Position* cell)
-        : cell_(cell) {
+        : cell_pos_(cell) {
     }
 
     void Print(std::ostream& out) const override {
-        if (!cell_->IsValid()) {
+        if (!cell_pos_->IsValid()) {
             throw FormulaError::Category::Ref;
         } else {
-            out << cell_->ToString();
+            out << cell_pos_->ToString();
         }
     }
 
@@ -253,11 +255,39 @@ public:
     }
 
     double Evaluate(const SheetInterface &sheet) const override {
-         return 0.0;
+        if (!cell_pos_->IsValid()) {
+            throw FormulaError::Category::Ref;
+        }
+        std::cout << cell_pos_->ToString() << std::endl;
+       CellInterface::Value value = sheet.GetCell(*cell_pos_)->GetValue();
+
+        if (double *dVal = std::get_if<double>(&value)) {
+            return *dVal;
+        }
+
+        if (std::string *sVal = std::get_if<std::string>(&value)) {
+            try {
+                size_t idx;
+                std::stod(*sVal, &idx);
+                // Ensure that the entire string was consumed, not just a part of it (e.g., "12.34abc")
+                if(idx == sVal->length())
+                    return idx;
+                }
+                catch (const std::invalid_argument& e) {
+                    throw FormulaError::Category::Value;
+                }
+                catch (const std::out_of_range& e) {
+                    throw FormulaError::Category::Value;
+                }
+        }
+
+
+
+        return 3.0;
     }
 
 private:
-    const Position* cell_;
+    const Position* cell_pos_;
 };
 
 class NumberExpr final : public Expr {

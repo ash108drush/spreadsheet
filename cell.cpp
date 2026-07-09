@@ -18,10 +18,13 @@ void Cell::Set(std::string text) {
     } else {
         impl_ = std::make_unique<EmptyImpl>();
     }
+    cache_.reset();
 }
 
 void Cell::Clear() {
     impl_ = std::make_unique<EmptyImpl>();
+    referenced_cells_.clear();
+    cache_.reset();
 }
 
 Cell::Value Cell::GetValue() const {

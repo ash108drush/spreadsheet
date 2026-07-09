@@ -21,12 +21,14 @@ public:
     void SetReferencedCells(std::vector<Position> referenced_cells){
         referenced_cells_ = std::move(referenced_cells);
     }
-
+    void ResetCache();
     bool IsReferenced() const;
 
 private:
     Sheet &sheet_;
     std::vector<Position> referenced_cells_;
+    mutable std::optional<CellInterface::Value> cache_;
+
     class Impl {
     public:
         virtual ~Impl() = default;

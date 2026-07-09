@@ -9,8 +9,6 @@
 #include <memory>
 #include <optional>
 #include <sstream>
-#include <iostream>
-#include <variant>
 
 namespace ASTImpl {
 
@@ -234,15 +232,15 @@ private:
 
 class CellExpr final : public Expr {
 public:
-    explicit CellExpr(const Position cell)
+    explicit CellExpr(const Position * cell)
         : cell_pos_(cell) {
     }
 
     void Print(std::ostream& out) const override {
-        if (!cell_pos_.IsValid()) {
+        if (!cell_pos_->IsValid()) {
             throw FormulaError::Category::Ref;
         } else {
-            out << cell_pos_.ToString();
+            out << cell_pos_->ToString();
         }
     }
 
@@ -255,39 +253,32 @@ public:
     }
 
     double Evaluate(const SheetInterface &sheet) const override {
-        if (!cell_pos_.IsValid()) {
-            throw FormulaError::Category::Ref;
-        }
-        std::cout << cell_pos_.ToString() << std::endl;
-       CellInterface::Value value = sheet.GetCell(cell_pos_)->GetValue();
-
-        if (double *dVal = std::get_if<double>(&value)) {
-            return *dVal;
+        const CellInterface* cell = sheet.GetCell(*cell_pos_);
+        if (!cell) {
+            return 0.0; // пустая ячейка трактуется как ноль
         }
 
-        if (std::string *sVal = std::get_if<std::string>(&value)) {
-            try {
-                size_t idx;
-                std::stod(*sVal, &idx);
-                // Ensure that the entire string was consumed, not just a part of it (e.g., "12.34abc")
-                if(idx == sVal->length())
-                    return idx;
+        auto value = cell->GetValue();
+        return std::visit([this](const auto& val) -> double {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, double>) {
+                return val;
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                // пытаемся преобразовать строку в число
+                double result = 0.0;
+                std::istringstream iss(val);
+                if (!(iss >> result) || !iss.eof()) {
+                    throw FormulaError(FormulaError::Category::Value);
                 }
-                catch (const std::invalid_argument& e) {
-                    throw FormulaError::Category::Value;
-                }
-                catch (const std::out_of_range& e) {
-                    throw FormulaError::Category::Value;
-                }
-        }
-
-
-
-        return 3.0;
+                return result;
+            } else if constexpr (std::is_same_v<T, FormulaError>) {
+                throw val; // передаём ошибку дальше
+            }
+        }, value);
     }
 
 private:
-    const Position cell_pos_;
+    const Position* cell_pos_;
 };
 
 class NumberExpr final : public Expr {

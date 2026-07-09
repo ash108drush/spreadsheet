@@ -4,12 +4,12 @@
 #include "formula.h"
 #include <functional>
 #include <unordered_set>
-
+#include <optional>
 class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet):sheet_(sheet){};
+    Cell(Sheet& sheet):sheet_(&sheet){};
     ~Cell();
 
     void Set(std::string text);
@@ -25,7 +25,7 @@ public:
     bool IsReferenced() const;
 
 private:
-    Sheet &sheet_;
+    Sheet *sheet_ = nullptr;
     std::vector<Position> referenced_cells_;
     mutable std::optional<CellInterface::Value> cache_;
 

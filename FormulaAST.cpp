@@ -253,28 +253,32 @@ public:
     }
 
     double Evaluate(const SheetInterface &sheet) const override {
+        if (!cell_pos_->IsValid()) {
+            throw FormulaError(FormulaError::Category::Ref);
+        }
         const CellInterface* cell = sheet.GetCell(*cell_pos_);
         if (!cell) {
-            return 0.0; // пустая ячейка трактуется как ноль
+            return 0.0;
         }
-
-        auto value = cell->GetValue();
-        return std::visit([this](const auto& val) -> double {
-            using T = std::decay_t<decltype(val)>;
-            if constexpr (std::is_same_v<T, double>) {
-                return val;
-            } else if constexpr (std::is_same_v<T, std::string>) {
-                // пытаемся преобразовать строку в число
-                double result = 0.0;
-                std::istringstream iss(val);
-                if (!(iss >> result) || !iss.eof()) {
-                    throw FormulaError(FormulaError::Category::Value);
-                }
-                return result;
-            } else if constexpr (std::is_same_v<T, FormulaError>) {
-                throw val; // передаём ошибку дальше
+        const auto& value = cell->GetValue();
+        if (std::holds_alternative<double>(value)) {
+            return std::get<double>(value);
+        }
+        if (std::holds_alternative<std::string>(value)) {
+            const auto& str = std::get<std::string>(value);
+            if (str.empty()) {
+                return 0.0;
             }
-        }, value);
+            std::istringstream in(str);
+            double result;
+            if (in >> result && in.eof()) {
+                return result;
+            }
+            throw FormulaError(FormulaError::Category::Value);
+        }
+        throw std::get<FormulaError>(value);
+        return 0;
+
     }
 
 private:

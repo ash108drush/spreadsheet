@@ -18,7 +18,6 @@ void Cell::Set(std::string text) {
     } else {
         impl_ = std::make_unique<EmptyImpl>();
     }
-
 }
 
 void Cell::Clear() {
@@ -40,4 +39,40 @@ std::vector<Position> Cell::GetReferencedCells() const{
 bool Cell::IsReferenced() const
 {
     return false;
+}
+
+std::string Cell::TextImpl::GetText() const{
+    return value_;
+}
+
+CellInterface::Value Cell::TextImpl::GetValue() const {
+    if(value_[0] == ESCAPE_SIGN){
+        return value_.substr(1);
+    }
+    return value_;
+}
+
+CellInterface::Value Cell::FormulaImpl::GetValue() const{
+    FormulaInterface::Value f_value = formula_->Evaluate(sheet_);
+    if (std::holds_alternative<double>(f_value)) {
+        return std::get<double>(f_value);
+    }
+
+    if (std::holds_alternative<FormulaError>(f_value)) {
+        return std::get<FormulaError>(f_value);
+    }
+    return "";
+
+}
+
+std::string Cell::FormulaImpl::GetText() const{
+    return "=" + formula_->GetExpression();
+}
+
+std::string Cell::EmptyImpl::GetText() const{
+    return "";
+}
+
+CellInterface::Value Cell::EmptyImpl::GetValue() const {
+    return "";
 }

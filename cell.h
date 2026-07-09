@@ -18,11 +18,15 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
+    void SetReferencedCells(std::vector<Position> referenced_cells){
+        referenced_cells_ = std::move(referenced_cells);
+    }
 
     bool IsReferenced() const;
 
 private:
     Sheet &sheet_;
+    std::vector<Position> referenced_cells_;
     class Impl {
     public:
         virtual ~Impl() = default;
@@ -53,6 +57,7 @@ private:
         }
         CellInterface::Value GetValue() const override;
         std::string GetText() const override;
+        std::vector<Position> GetReferencedCells() const;
 
     private:
         std::unique_ptr<FormulaInterface> formula_;

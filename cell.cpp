@@ -32,7 +32,7 @@ std::string Cell::GetText() const {
 }
 
 std::vector<Position> Cell::GetReferencedCells() const{
-    return {};
+    return referenced_cells_;
 
 }
 
@@ -67,6 +67,10 @@ CellInterface::Value Cell::FormulaImpl::GetValue() const{
 
 std::string Cell::FormulaImpl::GetText() const{
     return "=" + formula_->GetExpression();
+}
+
+std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const{
+        return formula_->GetReferencedCells();
 }
 
 std::string Cell::EmptyImpl::GetText() const{

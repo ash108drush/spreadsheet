@@ -36,7 +36,12 @@ public:
         return out.str();
     }
     std::vector<Position> GetReferencedCells() const override{
-        return {};
+        std::vector<Position> result;
+        for (const auto& cell : ast_.GetCells()) {
+            result.push_back(cell);
+        }
+        result.erase(std::unique(result.begin(), result.end()), result.end());
+        return result;
     }
 
 private:

@@ -163,14 +163,12 @@ public:
             result = left_val / right_val;
             break;
         default:
-            // have to do this because VC++ has a buggy warning
-            assert(false);
-            return static_cast<ExprPrecedence>(INT_MAX);
+            throw FormulaError(FormulaError::Category::Arithmetic);
             break;
         }
         //  std::cout << "l: " << left_val << "r: "  << right_val <<  "r: " << result << std::endl;
-        if (!std::isfinite(result)) {
-            throw FormulaError::Category::Arithmetic;
+        if (std::isinf(result) || std::isnan(result)) {
+            throw FormulaError(FormulaError::Category::Arithmetic);
         }
         return result;
     }
@@ -217,12 +215,12 @@ public:
         case '-':
             return oper * (-1);
         default:
-            // have to do this because VC++ has a buggy warning
-            assert(false);
-            return static_cast<ExprPrecedence>(INT_MAX);
+            throw FormulaError(FormulaError::Category::Arithmetic);
         }
-        assert(false);
-        return static_cast<ExprPrecedence>(INT_MAX);
+        if (std::isinf(oper) || std::isnan(oper)) {
+            throw FormulaError(FormulaError::Category::Arithmetic);
+        }
+        return oper;
     }
 
 private:

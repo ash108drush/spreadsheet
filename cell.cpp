@@ -29,7 +29,7 @@ void Cell::Clear() {
 
 Cell::Value Cell::GetValue() const {
     if (!cache_) {
-        cache_ = impl_->GetValue();
+            cache_ = impl_->GetValue();
     }
     return *cache_;
 }
@@ -63,16 +63,11 @@ CellInterface::Value Cell::FormulaImpl::GetValue() const{
     if (std::holds_alternative<double>(f_value)) {
         return std::get<double>(f_value);
     }
-
-    if (std::holds_alternative<FormulaError>(f_value)) {
-        return std::get<FormulaError>(f_value);
-    }
-    return "";
-
+    return std::get<FormulaError>(f_value);
 }
 
 std::string Cell::FormulaImpl::GetText() const{
-    return FORMULA_SIGN + formula_->GetExpression();
+    return "=" + formula_->GetExpression();
 }
 
 std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const{

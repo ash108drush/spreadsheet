@@ -7,7 +7,7 @@
 #include <string_view>
 #include <variant>
 #include <vector>
-#include <iostream>
+
 // Позиция ячейки. Индексация с нуля.
 struct Position {
     int row = 0;
@@ -18,7 +18,9 @@ struct Position {
 
     bool IsValid() const;
     std::string ToString() const;
+
     static Position FromString(std::string_view str);
+
     static const int MAX_ROWS = 16384;
     static const int MAX_COLS = 16384;
     static const Position NONE;
@@ -40,7 +42,7 @@ public:
         Arithmetic,  // в результате вычисления возникло деление на ноль
     };
 
-    FormulaError(Category category){};
+    FormulaError(Category category):category_(category){};
 
     Category GetCategory() const{
         return category_;
@@ -48,32 +50,26 @@ public:
 
     bool operator==(FormulaError rhs) const{
         return category_ == rhs.category_;
-    };
+    }
 
-    std::string_view ToString() const {
+    std::string_view ToString() const{
         switch (category_) {
-        case FormulaError::Category::Arithmetic:
-            return "#ARITHMETIC!";
-            break;
-        case FormulaError::Category::Ref:
-           return "#REF!";
-            break;
-        case FormulaError::Category::Value:
+        case Category::Ref:
+            return "#REF!";
+        case Category::Value:
             return "#VALUE!";
-            break;
-        default:
-            return "#ERROR";
-            break;
-        };
+        case Category::Arithmetic:
+            return "#ARITHM!";
+        }
+        return "";
     }
 
 private:
     Category category_;
 };
 
-inline std::ostream& operator<<(std::ostream& output, const FormulaError& fe){
-    output << fe.ToString();
-  return output;
+inline std::ostream& operator<<(std::ostream& output, FormulaError fe){
+    return output << fe.ToString();
 }
 
 // Исключение, выбрасываемое при попытке передать в метод некорректную позицию

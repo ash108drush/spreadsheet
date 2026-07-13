@@ -5,6 +5,10 @@
 #include <functional>
 #include <iostream>
 #include <optional>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <utility>
 
 using namespace std::literals;
 
@@ -36,7 +40,7 @@ void Sheet::SetCell(Position pos, std::string text) {
         throw CircularDependencyException("Circular dependency detected");
     }
 
-    CellInterface* cell = static_cast<Cell*>(GetCell(pos));
+    Cell* cell = static_cast<Cell*>(GetCell(pos));
 
     // Удаляем старые зависимости
     for (const Position& old_ref : cell->GetReferencedCells()) {
@@ -48,21 +52,43 @@ void Sheet::SetCell(Position pos, std::string text) {
     }
 
     // Устанавливаем новый текст
-    cell.Set(text);
+    cell->Set(text);
 
     // Устанавливаем новые ссылки
-    cell.SetReferencedCells(new_refs);
+    cell->SetReferencedCells(new_refs);
 
     // Добавляем новые зависимости (только для существующих ячеек)
     for (const Position& new_ref : new_refs) {
         if (new_ref.IsValid()) {
-            if (Cell* ref_cell = GetConcreteCell(new_ref)) {
-                ref_cell->AddDependent(cell);
+            if (Cell* ref_cell = static_cast<Cell*>(GetCell(new_ref))) {
+                ref_cell->AddDependent(*cell);
             }
         }
     }
 
-    InvalidateCacheFrom(cell);
+    InvalidateCache(*cell);
+}
+
+void Sheet::InvalidateCache(Cell& changed) {
+    std::queue<Cell*> q;
+    std::set<Cell*> visited;
+
+    q.push(&changed);
+
+    while (!q.empty()) {
+        Cell* cur = q.front();
+        q.pop();
+
+        if (!visited.insert(cur).second) {
+            continue;
+        }
+
+        cur->InvalidateCache();
+
+        for (Cell* dependent : cur->GetDependents()) {
+            q.push(dependent);
+        }
+    }
 }
 
 
@@ -83,7 +109,7 @@ void Sheet::SetCell(Position pos, std::string text) {
         throw InvalidPositionException("Invalid pos");
     }
 */
-bool Sheet::CheckCycle(Position pos, const vector<Position>& new_refs) const {
+bool Sheet::CheckCycle(Position pos, const std::vector<Position>& new_refs) const {
     // Проверка на прямую ссылку на себя
     for (const Position& ref : new_refs) {
         if (ref == pos) {
@@ -106,8 +132,8 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
         return false;
     }
 
-    queue<Position> q;
-    set<Position> visited;
+    std::queue<Position> q;
+    std::set<Position> visited;
     q.push(start);
 
     while (!q.empty()) {
@@ -122,7 +148,7 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
             continue;
         }
 
-        const Cell* cell = GetCell(cur);
+        const Cell* cell = static_cast<const Cell*>(GetCell(cur));
         if (!cell) {
             continue;
         }

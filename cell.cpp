@@ -91,3 +91,19 @@ void Cell::RemoveDependent(Cell& dependent) {
         );
     dependents_.erase(new_end, dependents_.end());
 }
+
+void Cell::SetReferencedCells(const std::vector<Position>& refs) {
+    referenced_cells_ = refs;
+}
+
+void Cell::AddDependent(Cell &dependent){
+    dependents_.push_back(&dependent);
+}
+
+void Cell::InvalidateCache(){
+    cache_.reset();
+}
+
+const std::vector<Cell*>& Cell::GetDependents() const {
+    return dependents_;
+}

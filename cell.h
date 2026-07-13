@@ -18,13 +18,14 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
-    void SetReferencedCells(std::vector<Position> referenced_cells){
-        referenced_cells_ = std::move(referenced_cells);
-    }
+
     void ResetCache();
     bool IsReferenced() const;
     void RemoveDependent(Cell& dependent);
-
+    void SetReferencedCells(const std::vector<Position>& refs);
+    void AddDependent(Cell& dependent);
+    void InvalidateCache();
+    const std::vector<Cell*>& GetDependents() const;
 private:
     Sheet *sheet_ = nullptr;
     std::vector<Position> referenced_cells_;

@@ -24,9 +24,11 @@ public:
     // Можете дополнить ваш класс нужными полями и методами
 
 private:
-     bool PositionValid(Position pos);
+    bool PositionValid(Position pos);
     bool CheckCycle(Position pos, const std::vector<Position>& new_refs) const;
+    bool HasPathToTarget(Position start, Position target) const;
     void RefreshTableSize();
+    void InvalidateCache(Cell& changed);
     //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
     struct PositionHasher {
         size_t operator()(const Position& p) const {

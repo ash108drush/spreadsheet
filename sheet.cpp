@@ -14,6 +14,20 @@ using namespace std::literals;
 
 Sheet::~Sheet() {}
 
+Cell& Sheet::SetCell(Position pos) {
+    PositionValid(pos);
+    auto it = cells_.find(pos);
+
+    if (it == cells_.end()) {
+        auto cell = std::make_unique<Cell>(*this);
+        Cell* ptr = cell.get();
+        cells_.emplace(pos, std::move(cell));
+        return *ptr;
+    }
+
+    return *it->second;
+}
+
 void Sheet::SetCell(Position pos, std::string text) {
     if(!PositionValid(pos))
         return;
@@ -248,11 +262,11 @@ bool Sheet::PositionValid(Position pos) {
 }
 
 void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_refs) {
-    Cell& cell = GetOrCreateCell(pos);
+    Cell& cell = SetCell(pos);
 
     for (const Position& old_ref : cell.GetReferencedCellsList()) {
         if (!old_ref.IsValid()) continue;
-        if (Cell* ref_cell = GetConcreteCell(old_ref)) {
+        if (Cell* ref_cell = static_cast<Cell *>(GetCell(old_ref))) {
             ref_cell->RemoveDependent(cell);
         }
     }
@@ -261,7 +275,7 @@ void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_r
 
     for (const Position& new_ref : new_refs) {
         if (!new_ref.IsValid()) continue;
-        if (Cell* ref_cell = GetConcreteCell(new_ref)) {
+        if (Cell* ref_cell = static_cast<Cell *>(GetCell(new_ref))) {
             ref_cell->AddDependent(cell);
         }
     }

@@ -14,6 +14,11 @@ public:
 
     const CellInterface* GetCell(Position pos) const override;
     CellInterface* GetCell(Position pos) override;
+    const Cell* GetCellImpl(Position pos) const;
+    Cell* GetCellImpl(Position pos);
+
+
+    Cell& GetOrCreateCell(Position pos);
 
     void ClearCell(Position pos) override;
 
@@ -28,10 +33,9 @@ public:
 private:
     void PrintCells(std::ostream& output,
         const std::function<std::string(const CellInterface*)>& getter) const;
-    bool PositionValid(Position pos);
+    void ValidatePosition(Position pos) const;
     bool CheckCycle(Position pos, const std::vector<Position>& new_refs) const;
     bool HasPathToTarget(Position start, Position target) const;
-    void RefreshTableSize();
     void RebuildDependencies(Position pos, const std::vector<Position>& new_refs);
     void InvalidateCache(Cell& changed);
     //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;

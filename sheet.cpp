@@ -15,7 +15,7 @@ using namespace std::literals;
 Sheet::~Sheet() {}
 
 Cell& Sheet::SetCell(Position pos) {
-    PositionValid(pos);
+    ValidatePosition(pos);
     auto it = cells_.find(pos);
 
     if (it == cells_.end()) {
@@ -29,9 +29,9 @@ Cell& Sheet::SetCell(Position pos) {
 }
 
 void Sheet::SetCell(Position pos, std::string text) {
-    if(!PositionValid(pos))
-        return;
-    if (const Cell* existing = static_cast<const Cell*>(GetCell(pos))) {
+    ValidatePosition(pos);
+
+    if (const Cell* existing = GetCellImpl(pos)) {
         if (existing->GetText() == text) {
             return;
         }
@@ -54,13 +54,13 @@ void Sheet::SetCell(Position pos, std::string text) {
         throw CircularDependencyException("Circular dependency detected");
     }
 
-    Cell* cell = static_cast<Cell*>(GetCell(pos));
+    Cell* cell = GetCellImpl(pos);
 
     // Удаляем старые зависимости
 
     for (const Position& old_ref : cell->GetReferencedCellsList()) {
         if (old_ref.IsValid()) {
-            if (Cell* ref_cell = static_cast<Cell*>(GetCell(old_ref))) {
+            if (Cell* ref_cell = GetCellImpl(old_ref)) {
                 ref_cell->RemoveDependent(*cell);
             }
         }
@@ -76,7 +76,7 @@ void Sheet::SetCell(Position pos, std::string text) {
     // Добавляем новые зависимости (только для существующих ячеек)
     for (const Position& new_ref : new_refs) {
         if (new_ref.IsValid()) {
-            if (Cell* ref_cell = static_cast<Cell*>(GetCell(new_ref))) {
+            if (Cell* ref_cell = GetCellImpl(new_ref)) {
                 ref_cell->AddDependent(*cell);
             }
         }
@@ -147,7 +147,7 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
             continue;
         }
 
-        const Cell* cell = static_cast<const Cell*>(GetCell(cur));
+        const Cell* cell = GetCellImpl(cur);
         if (!cell) {
             continue;
         }
@@ -165,35 +165,52 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const {
-    if(pos.IsValid()){
-        if (cells_.find(pos) != cells_.end())
-            return cells_.at(pos).get();
-    } else {
-        throw InvalidPositionException("Invalid pos");
-    }
-    return nullptr;
+    return GetCellImpl(pos);
 }
 
 CellInterface* Sheet::GetCell(Position pos) {
-    if(pos.IsValid()){
-        if (cells_.find(pos) != cells_.end())
-                return cells_.at(pos).get();      
-    } else {
-        throw InvalidPositionException("Invalid pos");
-    }
-    return nullptr;
+    return GetCellImpl(pos);
 }
 
-void Sheet::ClearCell(Position pos) {
-    if(pos.IsValid()){
-        if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            auto it = cells_.find(pos);
-            cells_.erase(it);
-            RefreshTableSize();  // ВСЕГДА обновляем размер, не только для последней ячейки
-        }
-    } else {
-        throw InvalidPositionException("Invalid pos");
+const Cell* Sheet::GetCellImpl(Position pos) const {
+    ValidatePosition(pos);
+    auto it = cells_.find(pos);
+    if (it == cells_.end()) {
+        return nullptr;
     }
+    return it->second.get();
+}
+
+Cell* Sheet::GetCellImpl(Position pos) {
+    ValidatePosition(pos);
+    auto it = cells_.find(pos);
+    if (it == cells_.end()) {
+        return nullptr;
+    }
+    return it->second.get();
+}
+
+
+void Sheet::ClearCell(Position pos) {
+    ValidatePosition(pos);
+    auto it = cells_.find(pos);
+    if (it == cells_.end()) {
+        return;
+    }
+
+    Cell* cell = it->second.get();
+
+    for (const Position& old_ref : cell->GetReferencedCellsList()) {
+        if (old_ref.IsValid()) {
+            if (Cell* ref_cell = GetCellImpl(old_ref)) {
+                ref_cell->RemoveDependent(*cell);
+            }
+        }
+    }
+
+    cell->SetReferencedCells({});
+    InvalidateCache(*cell);
+    cells_.erase(it);
 }
 
 Size Sheet::GetPrintableSize() const {
@@ -254,11 +271,10 @@ void Sheet::PrintTexts(std::ostream& output) const {
     });
 }
 
-bool Sheet::PositionValid(Position pos) {
+void Sheet::ValidatePosition(Position pos)  const {
     if (!pos.IsValid()) {
         throw InvalidPositionException("Invalid position: " + pos.ToString());
     }
-    return true;
 }
 
 void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_refs) {
@@ -266,7 +282,7 @@ void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_r
 
     for (const Position& old_ref : cell.GetReferencedCellsList()) {
         if (!old_ref.IsValid()) continue;
-        if (Cell* ref_cell = static_cast<Cell *>(GetCell(old_ref))) {
+        if (Cell* ref_cell = GetCellImpl(old_ref)) {
             ref_cell->RemoveDependent(cell);
         }
     }
@@ -275,35 +291,12 @@ void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_r
 
     for (const Position& new_ref : new_refs) {
         if (!new_ref.IsValid()) continue;
-        if (Cell* ref_cell = static_cast<Cell *>(GetCell(new_ref))) {
+        if (Cell* ref_cell = GetCellImpl(new_ref)) {
             ref_cell->AddDependent(cell);
         }
     }
 }
 
-
-
-void Sheet::RefreshTableSize(){
-    // ИСПРАВЛЕНО: начинаем с -1, чтобы отличать пустую таблицу
-    int max_col = -1;
-    int max_row = -1;
-    for(const auto &[pos, cell] :cells_){
-        if(pos.row > max_row){
-            max_row = pos.row;
-        }
-        if(pos.col > max_col){
-            max_col = pos.col;
-        }
-    }
-    if (max_col >= 0 && max_row >= 0) {
-        table_size_.cols = max_col + 1;
-        table_size_.rows = max_row + 1;
-    } else {
-        table_size_.cols = 0;
-        table_size_.rows = 0;
-    }
-
-}
 
 std::unique_ptr<SheetInterface> CreateSheet() {
     return std::make_unique<Sheet>();

@@ -23,10 +23,12 @@ public:
     }
     void ResetCache();
     bool IsReferenced() const;
+    void RemoveDependent(Cell& dependent);
 
 private:
     Sheet *sheet_ = nullptr;
     std::vector<Position> referenced_cells_;
+    std::vector<Cell*> dependents_;
     mutable std::optional<CellInterface::Value> cache_;
 
     class Impl {
@@ -34,7 +36,8 @@ private:
         virtual ~Impl() = default;
         virtual CellInterface::Value GetValue() const = 0;
         virtual std::string GetText() const = 0;
-        virtual std::vector<Position> GetReferencedCells() const  { return {}; }
+        virtual std::vector<Position> GetReferencedCells() const  {
+            return {}; }
     };
     class EmptyImpl : public Impl {
     public:
@@ -64,6 +67,8 @@ private:
 
 
     private:
+        std::vector<Position> referenced_cells_;
+        std::vector<Cell*> dependents_;
         std::unique_ptr<FormulaInterface> formula_;
         const SheetInterface& sheet_;
     };

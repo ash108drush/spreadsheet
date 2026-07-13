@@ -11,7 +11,63 @@ using namespace std::literals;
 Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
-    if(PositionValid(pos)){
+    if(!PositionValid(pos))
+        return;
+    if (const Cell* existing = static_cast<const Cell*>(GetCell(pos))) {
+        if (existing->GetText() == text) {
+            return;
+        }
+    }
+
+    if (text.empty()) {
+        ClearCell(pos);
+        return;
+    }
+
+    Cell tmp_cell(*this);
+    tmp_cell.Set(text);
+
+    std::vector<Position> new_refs;
+    if (text.size() > 1 && text[0] == FORMULA_SIGN) {
+        new_refs = tmp_cell.GetReferencedCells();
+    }
+
+    if (CheckCycle(pos, new_refs)) {
+        throw CircularDependencyException("Circular dependency detected");
+    }
+
+    CellInterface* cell = static_cast<Cell*>(GetCell(pos));
+
+    // Удаляем старые зависимости
+    for (const Position& old_ref : cell->GetReferencedCells()) {
+        if (old_ref.IsValid()) {
+            if (Cell* ref_cell = static_cast<Cell*>(GetCell(old_ref))) {
+                ref_cell->RemoveDependent(*cell);
+            }
+        }
+    }
+
+    // Устанавливаем новый текст
+    cell.Set(text);
+
+    // Устанавливаем новые ссылки
+    cell.SetReferencedCells(new_refs);
+
+    // Добавляем новые зависимости (только для существующих ячеек)
+    for (const Position& new_ref : new_refs) {
+        if (new_ref.IsValid()) {
+            if (Cell* ref_cell = GetConcreteCell(new_ref)) {
+                ref_cell->AddDependent(cell);
+            }
+        }
+    }
+
+    InvalidateCacheFrom(cell);
+}
+
+
+   /*
+    {
         if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
             table_size_.rows = std::max(pos.row + 1, table_size_.rows);
             table_size_.cols = std::max(pos.col + 1, table_size_.cols);
@@ -26,6 +82,61 @@ void Sheet::SetCell(Position pos, std::string text) {
     } else {
         throw InvalidPositionException("Invalid pos");
     }
+*/
+bool Sheet::CheckCycle(Position pos, const vector<Position>& new_refs) const {
+    // Проверка на прямую ссылку на себя
+    for (const Position& ref : new_refs) {
+        if (ref == pos) {
+            return true;
+        }
+    }
+
+    // Проверка на цикл через другие ячейки
+    for (const Position& ref : new_refs) {
+        if (HasPathToTarget(ref, pos)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Sheet::HasPathToTarget(Position start, Position target) const {
+    if (!start.IsValid()) {
+        return false;
+    }
+
+    queue<Position> q;
+    set<Position> visited;
+    q.push(start);
+
+    while (!q.empty()) {
+        const Position cur = q.front();
+        q.pop();
+
+        if (cur == target) {
+            return true;
+        }
+
+        if (!visited.insert(cur).second) {
+            continue;
+        }
+
+        const Cell* cell = GetCell(cur);
+        if (!cell) {
+            continue;
+        }
+
+        for (const Position& next : cell->GetReferencedCells()) {
+            if (!next.IsValid()) {
+                continue;
+            }
+
+            q.push(next);
+        }
+    }
+
+    return false;
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const {
@@ -42,10 +153,8 @@ const CellInterface* Sheet::GetCell(Position pos) const {
 
 CellInterface* Sheet::GetCell(Position pos) {
     if(pos.IsValid()){
-        if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            if (cells_.find(pos) != cells_.end())
-                return cells_.at(pos).get();
-        }
+        if (cells_.find(pos) != cells_.end())
+                return cells_.at(pos).get();      
     } else {
         throw InvalidPositionException("Invalid pos");
     }

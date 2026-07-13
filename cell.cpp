@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <optional>
+#include <algorithm>
 #include "sheet.h"
 // Реализуйте следующие методы
 
@@ -80,4 +81,13 @@ std::string Cell::EmptyImpl::GetText() const{
 
 CellInterface::Value Cell::EmptyImpl::GetValue() const {
     return "";
+}
+
+void Cell::RemoveDependent(Cell& dependent) {
+    auto new_end = std::remove_if(
+        dependents_.begin(),
+        dependents_.end(),
+        [&dependent](Cell* cell) { return cell == &dependent; }
+        );
+    dependents_.erase(new_end, dependents_.end());
 }

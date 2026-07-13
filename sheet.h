@@ -25,6 +25,7 @@ public:
 
 private:
      bool PositionValid(Position pos);
+    bool CheckCycle(Position pos, const std::vector<Position>& new_refs) const;
     void RefreshTableSize();
     //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
     struct PositionHasher {

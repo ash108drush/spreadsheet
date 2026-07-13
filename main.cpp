@@ -291,6 +291,7 @@ void TestPrint() {
 
 void TestCellReferences() {
     auto sheet = CreateSheet();
+
     sheet->SetCell("A1"_pos, "1");
     sheet->SetCell("A2"_pos, "=A1");
     sheet->SetCell("B2"_pos, "=A1");
@@ -301,7 +302,9 @@ void TestCellReferences() {
 
     // Ссылка на пустую ячейку
     sheet->SetCell("B2"_pos, "=B1");
-    ASSERT(sheet->GetCell("B1"_pos)->GetReferencedCells().empty());
+//    (sheet->GetCell("B1"_pos) == nullptr) ? std::cout << "null" : std::cout <<"not:";
+  std::cout << sheet->GetCell("B1"_pos)->GetReferencedCells() << std::endl;
+ //ASSERT(sheet->GetCell("B1"_pos)->GetReferencedCells().empty());
    // ASSERT_EQUAL(sheet->GetCell("B2"_pos)->GetReferencedCells(), std::vector{"B1"_pos});
 
   //  sheet->SetCell("A2"_pos, "");

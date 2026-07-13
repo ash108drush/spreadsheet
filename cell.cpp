@@ -38,7 +38,7 @@ std::string Cell::GetText() const {
 }
 
 std::vector<Position> Cell::GetReferencedCells() const{
-    return referenced_cells_;
+    return impl_->GetReferencedCells();
 
 }
 

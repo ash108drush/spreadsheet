@@ -3,6 +3,7 @@
 #include <cctype>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 const int LETTERS = 26;
 const int MAX_POSITION_LENGTH = 17;

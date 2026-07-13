@@ -11,14 +11,16 @@ using namespace std::literals;
 Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
-    if(pos.IsValid()){
+    if(PositionValid(pos)){
         if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
             table_size_.rows = std::max(pos.row + 1, table_size_.rows);
             table_size_.cols = std::max(pos.col + 1, table_size_.cols);
         }
+
         if(cells_.find(pos) == cells_.end()){
             cells_[pos] = std::make_unique<Cell>(*this);
         }
+
         cells_[pos]->Set(text);
 
     } else {
@@ -100,6 +102,14 @@ void Sheet::PrintTexts(std::ostream& output) const {
         }
     }
 }
+
+bool Sheet::PositionValid(Position pos) {
+    if (!pos.IsValid()) {
+        throw InvalidPositionException("Invalid position: " + pos.ToString());
+    }
+    return true;
+}
+
 
 
 

@@ -34,6 +34,7 @@ private:
         virtual ~Impl() = default;
         virtual CellInterface::Value GetValue() const = 0;
         virtual std::string GetText() const = 0;
+        virtual std::vector<Position> GetReferencedCells() const  { return {}; }
     };
     class EmptyImpl : public Impl {
     public:
@@ -59,7 +60,8 @@ private:
         }
         CellInterface::Value GetValue() const override;
         std::string GetText() const override;
-        std::vector<Position> GetReferencedCells() const;
+        std::vector<Position> GetReferencedCells() const override;
+
 
     private:
         std::unique_ptr<FormulaInterface> formula_;

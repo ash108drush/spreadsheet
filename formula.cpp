@@ -7,6 +7,7 @@
 #include <cctype>
 #include <sstream>
 #include <variant>
+#include <iostream>
 
 using namespace std::literals;
 
@@ -36,11 +37,13 @@ public:
         return out.str();
     }
     std::vector<Position> GetReferencedCells() const override{
-        std::vector<Position> result;
+        std::vector<Position> result = {};
         for (const auto& cell : ast_.GetCells()) {
             result.push_back(cell);
         }
+      //  std::cout << result.size();
         result.erase(std::unique(result.begin(), result.end()), result.end());
+       // std::cout << result.size() << std::endl;
         return result;
     }
 
@@ -50,5 +53,13 @@ private:
 }  // namespace
 
 std::unique_ptr<FormulaInterface> ParseFormula(std::string expression) {
-    return std::make_unique<Formula>(std::move(expression));
+    try {
+        return std::make_unique<Formula>(std::move(expression));
+    }
+    catch (const ParsingError& e) {
+        throw FormulaException(e.what());
+    }
+    catch (const std::exception& e) {
+        throw FormulaException(e.what());
+    }
 }

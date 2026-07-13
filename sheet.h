@@ -24,7 +24,7 @@ public:
     // Можете дополнить ваш класс нужными полями и методами
 
 private:
-  //  void ResizeTable(Size size);
+     bool PositionValid(Position pos);
     void RefreshTableSize();
     //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
     struct PositionHasher {

@@ -43,13 +43,15 @@ void Sheet::SetCell(Position pos, std::string text) {
     Cell* cell = static_cast<Cell*>(GetCell(pos));
 
     // Удаляем старые зависимости
-    for (const Position& old_ref : cell->GetReferencedCells()) {
+
+    for (const Position& old_ref : cell->GetReferencedCellsList()) {
         if (old_ref.IsValid()) {
             if (Cell* ref_cell = static_cast<Cell*>(GetCell(old_ref))) {
                 ref_cell->RemoveDependent(*cell);
             }
         }
     }
+
 
     // Устанавливаем новый текст
     cell->Set(text);
@@ -92,23 +94,6 @@ void Sheet::InvalidateCache(Cell& changed) {
 }
 
 
-   /*
-    {
-        if(pos.col >= table_size_.cols || pos.row >= table_size_.rows){
-            table_size_.rows = std::max(pos.row + 1, table_size_.rows);
-            table_size_.cols = std::max(pos.col + 1, table_size_.cols);
-        }
-
-        if(cells_.find(pos) == cells_.end()){
-            cells_[pos] = std::make_unique<Cell>(*this);
-        }
-
-        cells_[pos]->Set(text);
-
-    } else {
-        throw InvalidPositionException("Invalid pos");
-    }
-*/
 bool Sheet::CheckCycle(Position pos, const std::vector<Position>& new_refs) const {
     // Проверка на прямую ссылку на себя
     for (const Position& ref : new_refs) {
@@ -153,7 +138,7 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
             continue;
         }
 
-        for (const Position& next : cell->GetReferencedCells()) {
+        for (const Position& next : cell->GetReferencedCellsList()) {
             if (!next.IsValid()) {
                 continue;
             }
@@ -167,10 +152,8 @@ bool Sheet::HasPathToTarget(Position start, Position target) const {
 
 const CellInterface* Sheet::GetCell(Position pos) const {
     if(pos.IsValid()){
-        if(pos.col < table_size_.cols && pos.row < table_size_.rows){
-            if (cells_.find(pos) != cells_.end())
-                return cells_.at(pos).get();
-        }
+        if (cells_.find(pos) != cells_.end())
+            return cells_.at(pos).get();
     } else {
         throw InvalidPositionException("Invalid pos");
     }
@@ -204,38 +187,57 @@ Size Sheet::GetPrintableSize() const {
 }
 
 void Sheet::PrintValues(std::ostream& output) const {
-    for(int row = 0; row < table_size_.rows; ++row){
-        for(int col = 0; col < table_size_.cols; ++col){
-            Position pos = { row,col };
-            if (cells_.find(pos) != cells_.end()) {
-                const auto& value = cells_.at(pos)->GetValue();
-                std::visit([&](const auto& v) {
-                    output << v;
-                }, value);
-            }
-            if (col == table_size_.cols - 1) {
-                output << '\n';
-            } else {
+    PrintCells(output, [](const CellInterface* cell) -> std::string {
+        if (!cell) {
+            return {};
+        }
+
+        const auto value = cell->GetValue();
+
+        if (std::holds_alternative<std::string>(value)) {
+            return std::get<std::string>(value);
+        }
+
+        if (std::holds_alternative<double>(value)) {
+            std::ostringstream out;
+            out << std::get<double>(value);
+            return out.str();
+        }
+
+        std::ostringstream out;
+        out << std::get<FormulaError>(value);
+        return out.str();
+    });
+}
+
+void Sheet::PrintCells(
+    std::ostream& output,
+    const std::function<std::string(const CellInterface*)>& getter
+    ) const {
+    Size size = GetPrintableSize();
+
+    for (int r = 0; r < size.rows; ++r) {
+        bool first = true;
+        for (int c = 0; c < size.cols; ++c) {
+            if (!first) {
                 output << '\t';
             }
+            first = false;
+
+            const Position pos{r, c};
+            const CellInterface* cell = GetCell(pos);
+
+            output << getter(cell);
         }
+        output << '\n';
     }
 }
 
+
 void Sheet::PrintTexts(std::ostream& output) const {
-    for(int row = 0; row < table_size_.rows; ++row){
-        for(int col = 0; col < table_size_.cols; ++col){
-            Position pos = { row,col };
-            if (cells_.find(pos) != cells_.end()) {
-                output << cells_.at(pos)->GetText();
-            }
-            if (col == table_size_.cols - 1) {
-                output << '\n';
-            } else {
-                output << '\t';
-            }
-        }
-    }
+    PrintCells(output, [](const CellInterface* cell) -> std::string {
+        return cell ? cell->GetText() : std::string{};
+    });
 }
 
 bool Sheet::PositionValid(Position pos) {
@@ -245,6 +247,25 @@ bool Sheet::PositionValid(Position pos) {
     return true;
 }
 
+void Sheet::RebuildDependencies(Position pos, const std::vector<Position>& new_refs) {
+    Cell& cell = GetOrCreateCell(pos);
+
+    for (const Position& old_ref : cell.GetReferencedCellsList()) {
+        if (!old_ref.IsValid()) continue;
+        if (Cell* ref_cell = GetConcreteCell(old_ref)) {
+            ref_cell->RemoveDependent(cell);
+        }
+    }
+
+    cell.SetReferencedCells(new_refs);
+
+    for (const Position& new_ref : new_refs) {
+        if (!new_ref.IsValid()) continue;
+        if (Cell* ref_cell = GetConcreteCell(new_ref)) {
+            ref_cell->AddDependent(cell);
+        }
+    }
+}
 
 
 

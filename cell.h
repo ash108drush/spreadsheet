@@ -26,6 +26,7 @@ public:
     void AddDependent(Cell& dependent);
     void InvalidateCache();
     const std::vector<Cell*>& GetDependents() const;
+     const std::vector<Position>& GetReferencedCellsList() const;
 private:
     Sheet *sheet_ = nullptr;
     std::vector<Position> referenced_cells_;

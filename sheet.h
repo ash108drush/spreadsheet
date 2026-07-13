@@ -10,6 +10,7 @@ public:
     ~Sheet();
 
     void SetCell(Position pos, std::string text) override;
+    Cell& SetCell(Position pos);
 
     const CellInterface* GetCell(Position pos) const override;
     CellInterface* GetCell(Position pos) override;
@@ -21,13 +22,17 @@ public:
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
 
+
     // Можете дополнить ваш класс нужными полями и методами
 
 private:
+    void PrintCells(std::ostream& output,
+        const std::function<std::string(const CellInterface*)>& getter) const;
     bool PositionValid(Position pos);
     bool CheckCycle(Position pos, const std::vector<Position>& new_refs) const;
     bool HasPathToTarget(Position start, Position target) const;
     void RefreshTableSize();
+    void RebuildDependencies(Position pos, const std::vector<Position>& new_refs);
     void InvalidateCache(Cell& changed);
     //std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
     struct PositionHasher {

@@ -84,12 +84,10 @@ CellInterface::Value Cell::EmptyImpl::GetValue() const {
 }
 
 void Cell::RemoveDependent(Cell& dependent) {
-    auto new_end = std::remove_if(
-        dependents_.begin(),
-        dependents_.end(),
-        [&dependent](Cell* cell) { return cell == &dependent; }
+    dependents_.erase(
+        std::remove(dependents_.begin(), dependents_.end(), &dependent),
+        dependents_.end()
         );
-    dependents_.erase(new_end, dependents_.end());
 }
 
 void Cell::SetReferencedCells(const std::vector<Position>& refs) {
@@ -106,4 +104,8 @@ void Cell::InvalidateCache(){
 
 const std::vector<Cell*>& Cell::GetDependents() const {
     return dependents_;
+}
+
+const std::vector<Position> &Cell::GetReferencedCellsList() const{
+    return referenced_cells_;
 }
